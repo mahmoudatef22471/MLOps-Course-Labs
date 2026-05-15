@@ -1,10 +1,8 @@
-name: CI / CD pipline
+name: CI / CD Pipeline
 
 on:
   push:
     branches: [main]
-  
-    
 
 jobs:
   test:
@@ -25,6 +23,8 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install pre-commit ruff
 
+      
+
       - name: Run tests
         run: |
           pytest tests/ -v --cov=app --cov=main --cov-report=term-missing
@@ -34,11 +34,10 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     env:
-      IMAGE_NAME: churn-prediction-api
       IMAGE_TAG: ${{ github.sha }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
-      ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      ECR_REPOSITORY: churn-prediction-api
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,15 +50,16 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Log in to Amazon ECR
         run: |
-          aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+          aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
       - name: Build and push Docker image
         run: |
           set -e
+          ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
           docker build -t "$IMAGE_URI" .
           docker push "$IMAGE_URI"
@@ -70,11 +70,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
-      IMAGE_NAME: churn-prediction-api
       IMAGE_TAG: ${{ github.sha }}
-      REGISTRY_PROVIDER: ${{ secrets.REGISTRY_PROVIDER }}
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
       ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
       ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -89,16 +85,11 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_SSH_PORT || '22' }}
+          envs: IMAGE_TAG,ECR_REGISTRY,ECR_REPOSITORY,AWS_REGION
           script: |
             set -e
-            if [ "${REGISTRY_PROVIDER}" = "aws_ecr" ]; then
-              aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
-              IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-            else
-              echo "${DOCKERHUB_PASSWORD}" | docker login --username "${DOCKERHUB_USERNAME}" --password-stdin
-              IMAGE_URI="${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
-            fi
-
+            aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+            IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
             docker pull "$IMAGE_URI"
             docker stop churn-api || true
             docker rm churn-api || true
