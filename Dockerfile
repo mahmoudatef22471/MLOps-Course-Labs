@@ -1,6 +1,6 @@
 FROM python:latest
 
-WORKDIR /app
+WORKDIR /my_app
 
 # Install dependencies first to leverage Docker cache.
 COPY requirements.txt .

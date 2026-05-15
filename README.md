@@ -25,6 +25,25 @@ Swagger UI: http://localhost:8000/schema/swagger
 uv run pytest tests/ -v --cov=app --cov=main --cov-report=term-missing
 ```
 
+### CI / CD and Deployment
+
+This repository includes a GitHub Actions workflow at `.github/workflows/actions.yml`.
+
+The workflow performs:
+- dependency installation
+- linting with `ruff`
+- pre-commit validation
+- pytest execution
+- Docker image build
+- image push to Docker Hub or AWS ECR, depending on secrets
+- deployment to an EC2 instance via SSH
+
+To use the workflow, add the following repository secrets in GitHub:
+- `REGISTRY_PROVIDER` = `docker_hub` or `aws_ecr`
+- `DOCKERHUB_USERNAME` and `DOCKERHUB_PASSWORD` (for Docker Hub)
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `ECR_REGISTRY`, `ECR_REPOSITORY` (for AWS ECR)
+- `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, and optionally `EC2_SSH_PORT`
+
 ### Endpoints
 
 | Method | Path       | Description              |
