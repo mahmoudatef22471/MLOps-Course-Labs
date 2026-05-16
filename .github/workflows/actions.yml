@@ -83,7 +83,6 @@ jobs:
             host: ${{ secrets.EC2_HOST }}
             username: ${{ secrets.EC2_USERNAME }}
             key: ${{ secrets.EC2_SSH_KEY }}
-            port: ${{ secrets.EC2_SSH_PORT }}
             envs: IMAGE_TAG,AWS_ACCOUNT_ID,AWS_REGION,ECR_REPOSITORY
             debug: true
             script: |
@@ -94,4 +93,4 @@ jobs:
               docker pull "$IMAGE_URI"
               docker stop churn-api || true
               docker rm churn-api || true
-              docker run -d --name churn-api -p 8000:8000 --restart unless-stopped "$IMAGE_URI"
+              docker run -d --name churn-api -p 443:8000 --restart unless-stopped "$IMAGE_URI"
