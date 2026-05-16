@@ -1,4 +1,5 @@
 from locust import HttpUser, task, between
+# add locust file
 
 
 class ChurnPredictionUser(HttpUser):
