@@ -71,9 +71,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE_TAG: ${{ github.sha }}
-      ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
+      ECR_REPOSITORY: churn-prediction-api
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -82,14 +82,15 @@ jobs:
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
+          username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_SSH_PORT || '22' }}
-          envs: IMAGE_TAG,ECR_REGISTRY,ECR_REPOSITORY,AWS_REGION
+          port: ${{ secrets.EC2_SSH_PORT }}
+          envs: IMAGE_TAG,AWS_ACCOUNT_ID,AWS_REGION,ECR_REPOSITORY
           script: |
             set -e
-            aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+            ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
             IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+            aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
             docker pull "$IMAGE_URI"
             docker stop churn-api || true
             docker rm churn-api || true
