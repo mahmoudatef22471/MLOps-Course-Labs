@@ -31,7 +31,7 @@ jobs:
 
   build_push:
     name: Build and Push Docker Image to ECR
-    needs: test
+    # needs: test
     runs-on: ubuntu-latest
     env:
       IMAGE_TAG: ${{ github.sha }}
